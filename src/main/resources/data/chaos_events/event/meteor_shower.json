@@ -6,11 +6,11 @@
   "dimensions": ["minecraft:overworld"],
   "cooldown_ticks": 36000,
   "type": "explosion",
-  "config": {
+    "config": {
     "power": 4.0,
-    "fiery": true,
-    "count": 8,
-    "message": "☄ METEOR SHOWER! THE SKY IS FALLING!",
-    "message_color": "dark_red"
-  }
+    "fire": true,
+    "count": 8
+  },
+  "message": "☄ METEOR SHOWER! THE SKY IS FALLING!",
+  "message_color": "dark_red"
 }

@@ -366,7 +366,7 @@ public final class EventLoader {
             return null;
         }
 
-        var entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
+        var entityType = BuiltInRegistries.ENTITY_TYPE.get(safeParse(entityId));
         if (entityType == null) {
             LOGGER.warn("Unknown entity '{}' in spawn_entity event '{}'", entityId, entry.displayName());
             return null;
@@ -415,7 +415,12 @@ public final class EventLoader {
             return null;
         }
 
-        var effect = BuiltInRegistries.MOB_EFFECT.get(ResourceLocation.parse(effectId));
+        var effectIdRL = safeParse(effectId);
+        if (effectIdRL == null) {
+            LOGGER.warn("Invalid effect ID '{}' in apply_effect event '{}'", effectId, entry.displayName());
+            return null;
+        }
+        var effect = BuiltInRegistries.MOB_EFFECT.get(effectIdRL);
         if (effect == null) {
             LOGGER.warn("Unknown effect '{}' in apply_effect event '{}'", effectId, entry.displayName());
             return null;
@@ -505,7 +510,9 @@ public final class EventLoader {
                         for (var player : players) {
                             for (int i = 0; i < count; i++) {
                                 var item = items.get(RNG.nextInt(items.size()));
-                                player.getInventory().add(new ItemStack(item));
+                        if (!player.getInventory().add(new ItemStack(item))) {
+                            player.drop(new ItemStack(item), false);
+                        }
                             }
                         }
                     }
@@ -575,7 +582,7 @@ public final class EventLoader {
                 // Determine which effects to apply to the cloud
                 MobEffectInstance cloudEffect;
                 if (effectId != null) {
-                    var effect = BuiltInRegistries.MOB_EFFECT.get(ResourceLocation.parse(effectId));
+                    var effect = BuiltInRegistries.MOB_EFFECT.get(safeParse(effectId));
                     if (effect != null) {
                         cloudEffect = new MobEffectInstance(Holder.direct(effect), duration, 0);
                     } else {
@@ -681,7 +688,7 @@ public final class EventLoader {
             return null;
         }
 
-        var entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
+        var entityType = BuiltInRegistries.ENTITY_TYPE.get(safeParse(entityId));
         if (entityType == null) {
             LOGGER.warn("Unknown entity '{}' in boss_spawn event '{}'", entityId, entry.displayName());
             return null;
@@ -703,16 +710,17 @@ public final class EventLoader {
                 broadcastIfPresent(level, entry);
                 var entity = entityType.create(level);
                 if (entity instanceof LivingEntity living) {
-                    var maxHealth = living.getMaxHealth() * healthMultiplier;
-                    living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH)
-                            .setBaseValue(maxHealth);
-                    living.setHealth((float) maxHealth);
+                    var maxHealthAttr = living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+                    if (maxHealthAttr != null) {
+                        var maxHealth = maxHealthAttr.getBaseValue() * healthMultiplier;
+                        maxHealthAttr.setBaseValue(maxHealth);
+                        living.setHealth((float) maxHealth);
+                    }
 
-                    if (living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) != null) {
-                        var baseDmg = living.getAttributeValue(
-                                net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
-                        living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)
-                                .setBaseValue(baseDmg * damageMultiplier);
+                    var atkAttr = living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                    if (atkAttr != null) {
+                        var baseDmg = atkAttr.getBaseValue();
+                        atkAttr.setBaseValue(baseDmg * damageMultiplier);
                     }
 
                     living.setCustomName(Component.literal("§4§l" + entry.displayName()));
@@ -750,7 +758,12 @@ public final class EventLoader {
                 for (var player : players) {
                     for (int i = 0; i < entry.rewardCount(); i++) {
                         var item = items.get(RNG.nextInt(items.size()));
-                        player.getInventory().add(new ItemStack(item));
+                        var rewardStack = new ItemStack(item);
+                        if (!player.getInventory().add(rewardStack)) {
+                            level.addFreshEntity(
+                                    new net.minecraft.world.entity.item.ItemEntity(
+                                            level, player.getX(), player.getY(), player.getZ(), rewardStack));
+                        }
                     }
                     player.sendSystemMessage(
                             Component.literal("§eYou survived the chaos and received a reward!"));
@@ -820,7 +833,7 @@ public final class EventLoader {
         if (!isFunnyEffectsLoaded()) return null;
 
         var id = FUNNY_EFFECT_ITEMS[RNG.nextInt(FUNNY_EFFECT_ITEMS.length)];
-        var item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(id));
+        var item = BuiltInRegistries.ITEM.get(safeParse(id));
         if (item == null || item == Items.AIR) {
             return null;
         }
@@ -841,9 +854,10 @@ public final class EventLoader {
         if (colorStr != null && !colorStr.isBlank()) {
             try {
                 var parsed = TextColor.parseColor(colorStr);
-                if (parsed != null && parsed.result().isPresent()) {
+                var color = parsed.result().orElse(null);
+                if (color != null) {
                     component = Component.literal(message).withStyle(style ->
-                            style.withColor(parsed.result().orElseThrow()));
+                            style.withColor(color));
                 } else {
                     component = Component.literal(message);
                 }
@@ -874,6 +888,16 @@ public final class EventLoader {
     private static double getDouble(JsonObject json, String key, double defaultValue) {
         var el = json.get(key);
         return el != null && el.isJsonPrimitive() ? el.getAsDouble() : defaultValue;
+    }
+
+    @Nullable
+    private static ResourceLocation safeParse(@NotNull String id) {
+        try {
+            return ResourceLocation.parse(Objects.requireNonNull(id, "id"));
+        } catch (net.minecraft.ResourceLocationException e) {
+            LOGGER.warn("Invalid resource location '{}' — skipping", id);
+            return null;
+        }
     }
 
     private static boolean getBoolean(JsonObject json, String key, boolean defaultValue) {

@@ -1,6 +1,7 @@
 package com.bikininjas.chaosevents;
 
 import com.bikininjas.chaosevents.item.ModItems;
+import com.bikininjas.corelib.config.BikiniConfigRegistry;
 import com.bikininjas.corelib.log.LogManager;
 import com.bikininjas.corelib.log.ModLogger;
 import com.bikininjas.corelib.randomevent.RandomEventManager;
@@ -30,6 +31,11 @@ public final class ChaosEventsMod {
     public ChaosEventsMod(IEventBus modBus) {
         // Register items
         ModItems.MOD_ITEMS.register(modBus);
+
+        BikiniConfigRegistry.registerEnum(MOD_ID, "difficulty", "Difficulty", "normal",
+                "easy", "normal", "hard", "insane");
+        BikiniConfigRegistry.registerInt(MOD_ID, "interval_min", "Interval Min (s)", 300);
+        BikiniConfigRegistry.registerInt(MOD_ID, "interval_max", "Interval Max (s)", 900);
 
         NeoForge.EVENT_BUS.register(EventHandler.class);
 

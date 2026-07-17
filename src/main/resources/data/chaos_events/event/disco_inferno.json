@@ -6,12 +6,12 @@
   "dimensions": ["minecraft:overworld"],
   "cooldown_ticks": 6000,
   "type": "apply_effect",
-  "config": {
+    "config": {
     "effect": "minecraft:glowing",
     "duration": 400,
     "amplifier": 0,
-    "apply_to_all": true,
-    "message": "🪩 DISCO TIME! Everybody glow!",
-    "message_color": "light_purple"
-  }
+    "apply_to_all": true
+  },
+  "message": "🪩 DISCO TIME! Everybody glow!",
+  "message_color": "light_purple"
 }

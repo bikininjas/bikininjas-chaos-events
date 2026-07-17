@@ -6,10 +6,10 @@
   "dimensions": ["minecraft:overworld", "minecraft:the_nether"],
   "cooldown_ticks": 24000,
   "type": "spawn_entity",
-  "config": {
+    "config": {
     "entity": "minecraft:wither_skeleton",
     "count": 2,
-    "radius": 6,
-    "message": "💀 Wither skeletons approach..."
-  }
+    "radius": 6
+  },
+  "message": "💀 Wither skeletons approach..."
 }

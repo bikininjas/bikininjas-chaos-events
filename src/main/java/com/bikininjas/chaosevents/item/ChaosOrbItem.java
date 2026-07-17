@@ -49,7 +49,13 @@ public class ChaosOrbItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
 
-        mgr.fireRandomEvent(serverLevel);
+        if (mgr.getEventCount() == 0) {
+            player.displayClientMessage(
+                    Component.literal("§c[Chaos] No chaos events registered."), true);
+            return InteractionResultHolder.fail(stack);
+        }
+
+        mgr.fireRandomEvent(serverLevel, player.position());
 
         if (player instanceof ServerPlayer serverPlayer) {
             serverPlayer.getCooldowns().addCooldown(this, 100); // 5-second cooldown

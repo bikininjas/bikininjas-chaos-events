@@ -6,13 +6,13 @@
   "dimensions": ["minecraft:overworld"],
   "cooldown_ticks": 7000,
   "type": "potion_cloud",
-  "config": {
+    "config": {
     "effect": "minecraft:nausea",
     "duration": 300,
     "amplifier": 1,
     "radius": 5,
-    "count": 3,
-    "message": "🍺 Everything is spinning... hic!",
-    "message_color": "gold"
-  }
+    "count": 3
+  },
+  "message": "🍺 Everything is spinning... hic!",
+  "message_color": "gold"
 }

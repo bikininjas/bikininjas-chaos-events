@@ -6,9 +6,9 @@
   "dimensions": ["minecraft:overworld"],
   "cooldown_ticks": 15000,
   "type": "lightning",
-  "config": {
-    "count": 10,
-    "message": "⚡ RUN! Zeus is angry!",
-    "message_color": "yellow"
-  }
+    "config": {
+    "count": 10
+  },
+  "message": "⚡ RUN! Zeus is angry!",
+  "message_color": "yellow"
 }
