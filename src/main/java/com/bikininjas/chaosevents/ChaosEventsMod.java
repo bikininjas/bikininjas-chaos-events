@@ -5,6 +5,7 @@ import com.bikininjas.corelib.log.LogManager;
 import com.bikininjas.corelib.log.ModLogger;
 import com.bikininjas.corelib.randomevent.RandomEventManager;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -30,21 +31,28 @@ public final class ChaosEventsMod {
         // Register items
         ModItems.MOD_ITEMS.register(modBus);
 
-        // Load datapack event definitions on server start
-        NeoForge.EVENT_BUS.addListener((ServerAboutToStartEvent event) -> {
+        NeoForge.EVENT_BUS.register(EventHandler.class);
+
+        LOGGER.info("Chaos Events mod initialized");
+    }
+
+    // -- Event Handlers ---------------------------------------------------------
+
+    private static final class EventHandler {
+
+        @SubscribeEvent
+        static void onServerAboutToStart(ServerAboutToStartEvent event) {
             var server = event.getServer();
             EventLoader.loadAll(server);
             RandomEventManager.getInstance().setEnabled(true);
             LOGGER.info("Chaos Events loaded {} event(s) from datapack",
                     RandomEventManager.getInstance().getEventCount());
-        });
+        }
 
-        // Register the /chaos command
-        NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent event) -> {
+        @SubscribeEvent
+        static void onRegisterCommands(RegisterCommandsEvent event) {
             ChaosCommand.register(event.getDispatcher());
-            LOGGER.debug("/chaos command registered");
-        });
-
-        LOGGER.info("Chaos Events mod initialized");
+            LOGGER.info("/chaos command registered");
+        }
     }
 }
