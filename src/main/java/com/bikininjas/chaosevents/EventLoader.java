@@ -66,6 +66,9 @@ public final class EventLoader {
     /** All parsed event entries (including those filtered out by difficulty). */
     private static final List<ChaosEventEntry> allEvents = new ArrayList<>();
 
+    /** Last fire time per event entry name (for cooldown enforcement). */
+    private static final java.util.Map<String, Long> lastFireTime = new java.util.concurrent.ConcurrentHashMap<>();
+
     /** Current active difficulty filter — events at or below this level are registered. */
     private static DifficultyLevel activeDifficulty = DifficultyLevel.NORMAL;
 
@@ -219,6 +222,23 @@ public final class EventLoader {
      */
     public static @NotNull List<String> getAllEventFileNames() {
         return allEvents.stream().map(ChaosEventEntry::fileName).toList();
+    }
+
+    private static boolean shouldExecute(ChaosEventEntry entry, ServerLevel level) {
+        if (entry.minPlayers() > 0
+                && level.getServer().getPlayerList().getPlayerCount() < entry.minPlayers()) {
+            return false;
+        }
+        if (!entry.dimensions().contains(level.dimension().location().toString())) {
+            return false;
+        }
+        long now = level.getServer().getTickCount();
+        Long last = lastFireTime.get(entry.displayName());
+        if (last != null && now - last < entry.cooldownTicks()) {
+            return false;
+        }
+        lastFireTime.put(entry.displayName(), now);
+        return true;
     }
 
     /**
@@ -385,6 +405,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
                 for (int i = 0; i < count; i++) {
                     var entity = entityType.create(level);
@@ -439,6 +460,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
                 var players = level.getServer().getPlayerList().getPlayers();
                 for (var player : players) {
@@ -454,6 +476,7 @@ public final class EventLoader {
         var config = entry.config();
         var power = (float) getDouble(config, "power", 3.0);
         var fire = getBoolean(config, "fire", false);
+        var count = Math.min(getInt(config, "count", 1), 10);
 
         return new RandomEvent() {
             @Override
@@ -468,9 +491,13 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
-                level.explode(null, origin.x, origin.y, origin.z, power, fire,
-                        Level.ExplosionInteraction.TNT);
+                for (int i = 0; i < count; i++) {
+                    var ex = origin.add(RNG.nextDouble() * 4 - 2, 0, RNG.nextDouble() * 4 - 2);
+                    level.explode(null, ex.x, ex.y, ex.z, power, fire,
+                            Level.ExplosionInteraction.TNT);
+                }
                 distributeSurvivorRewards(level, entry);
                 broadcastEventVisuals(level, entry, origin);
             }
@@ -494,6 +521,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
 
                 // Resolve the #chaos_events:event_rewards tag
@@ -531,6 +559,7 @@ public final class EventLoader {
                         }
                     }
                 }
+                distributeSurvivorRewards(level, entry);
                 broadcastEventVisuals(level, entry, origin);
             }
         };
@@ -550,6 +579,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
                 distributeSurvivorRewards(level, entry);
                 broadcastEventVisuals(level, entry, origin);
@@ -577,6 +607,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
 
                 // Determine which effects to apply to the cloud
@@ -626,6 +657,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
                 var players = level.getServer().getPlayerList().getPlayers();
                 if (players.isEmpty()) return;
@@ -660,6 +692,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
                 var aabb = new AABB(origin.x - radius, origin.y - radius, origin.z - radius,
                         origin.x + radius, origin.y + radius, origin.z + radius);
@@ -707,6 +740,7 @@ public final class EventLoader {
 
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                if (!shouldExecute(entry, level)) return;
                 broadcastIfPresent(level, entry);
                 var entity = entityType.create(level);
                 if (entity instanceof LivingEntity living) {
@@ -778,13 +812,9 @@ public final class EventLoader {
      * Broadcast visual and audio effects to all players when an event fires.
      */
     private static void broadcastEventVisuals(ServerLevel level, ChaosEventEntry entry, Vec3 origin) {
-        var players = level.getServer().getPlayerList().getPlayers();
-        for (var player : players) {
-            // Brief nausea for screen-shake effect
+        for (var player : level.players()) {
             player.addEffect(new MobEffectInstance(
                     MobEffects.CONFUSION, 60, 0, true, false));
-
-            // Play event sound at player's position
             player.playNotifySound(net.minecraft.sounds.SoundEvents.ENDER_DRAGON_GROWL,
                     net.minecraft.sounds.SoundSource.MASTER, 0.5F, 1.0F);
         }
