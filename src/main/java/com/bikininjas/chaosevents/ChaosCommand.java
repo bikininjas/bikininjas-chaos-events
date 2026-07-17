@@ -69,12 +69,17 @@ public final class ChaosCommand {
         var helpNode = Commands.literal("help")
                 .executes(ctx -> executeHelp(ctx.getSource()));
 
+        var reloadNode = Commands.literal("reload")
+                .requires(src -> src.hasPermission(2))
+                .executes(ctx -> executeReload(ctx.getSource()));
+
         dispatcher.register(Commands.literal("chaos")
                 .then(statusNode)
                 .then(toggleNode)
                 .then(triggerNode)
                 .then(difficultyNode)
                 .then(intervalNode)
+                .then(reloadNode)
                 .then(helpNode)
                 .executes(ctx -> executeHelp(ctx.getSource())));
     }
@@ -153,6 +158,16 @@ public final class ChaosCommand {
         source.sendSuccess(() -> Component.literal("§7/chaos trigger <name> §8- Fire an event (perm 2)"), false);
         source.sendSuccess(() -> Component.literal("§7/chaos difficulty <level> §8- Set difficulty filter (perm 2)"), false);
         source.sendSuccess(() -> Component.literal("§7/chaos interval <min> <max> §8- Set interval in seconds (perm 2)"), false);
+        source.sendSuccess(() -> Component.literal("§7/chaos reload §8- Reload events from datapack (perm 2)"), false);
+        return 1;
+    }
+
+    private static int executeReload(@NotNull CommandSourceStack source) {
+        var server = source.getServer();
+        EventLoader.loadAll(server);
+        source.sendSuccess(() -> Component.literal(PREFIX + "§aEvents reloaded from datapack! §e"
+                + RandomEventManager.getInstance().getEventCount() + " §aactive."), true);
+        LOGGER.info("Chaos events reloaded by {}", source.getTextName());
         return 1;
     }
 }
