@@ -22,19 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Resolve core-lib version
-        id: corelib
-        run: |
-          VERSION=$(curl -sSf https://api.github.com/repos/bikininjas/bikininjas-core-lib/releases/latest | jq -r .tag_name | sed 's/^v//')
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Download core-lib JAR
-        run: |
-          VERSION="${{ steps.corelib.outputs.version }}"
-          mkdir -p libs
-          curl -sSfL -o "libs/core_lib-${VERSION}.jar" \
-            "https://github.com/bikininjas/bikininjas-core-lib/releases/download/v${VERSION}/bikininjas-core_lib-${VERSION}.jar"
-
       - uses: actions/setup-java@v4
         with:
           java-version: 21
@@ -42,7 +29,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Build & test
-        run: ./gradlew build test -PcoreLibVersion=${{ steps.corelib.outputs.version }}
+        run: ./gradlew build test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Smoke test (start server)
         run: |
@@ -51,9 +40,11 @@ jobs:
           echo "eula=true" > run/eula.txt
           echo "server-port=25569" > run/server.properties
           echo "online-mode=false" >> run/server.properties
-          timeout 90 ./gradlew runServer -PcoreLibVersion=${{ steps.corelib.outputs.version }} 2>&1 || [ $? -eq 124 ]
+          timeout 90 ./gradlew runServer 2>&1 || [ $? -eq 124 ]
           fuser -k 25569/tcp 2>/dev/null || true
           rm -rf run/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: CD — Release
@@ -62,23 +53,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Resolve core-lib version
-        id: corelib
-        run: |
-          VERSION=$(curl -sSf https://api.github.com/repos/bikininjas/bikininjas-core-lib/releases/latest | jq -r .tag_name | sed 's/^v//')
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Download core-lib JAR
-        run: |
-          VERSION="${{ steps.corelib.outputs.version }}"
-          mkdir -p libs
-          curl -sSfL -o "libs/core_lib-${VERSION}.jar" \
-            "https://github.com/bikininjas/bikininjas-core-lib/releases/download/v${VERSION}/bikininjas-core_lib-${VERSION}.jar"
 
       - uses: actions/setup-java@v4
         with:
@@ -130,7 +109,9 @@ jobs:
 
       - name: Build release JAR
         if: steps.version.outputs.skip != 'true'
-        run: ./gradlew build -Pmod_version=${{ steps.version.outputs.version }} -PcoreLibVersion=${{ steps.corelib.outputs.version }}
+        run: ./gradlew build -Pmod_version=${{ steps.version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
         if: steps.version.outputs.skip != 'true'

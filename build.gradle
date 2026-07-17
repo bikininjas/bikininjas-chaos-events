@@ -57,12 +57,19 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
     mavenCentral()
-    flatDir { dirs 'libs' }
+    maven {
+        name = "GitHubPackages"
+        url = "https://maven.pkg.github.com/bikininjas/bikininjas-core-lib"
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR")
+            password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 dependencies {
-    // core-lib — resolved via composite build locally; CI passes concrete version via -PcoreLibVersion
-    implementation "com.bikininjas.corelib:core_lib:${project.findProperty('coreLibVersion') ?: '1.+'}"
+    // core-lib — resolved via GitHub Packages or composite build locally
+    implementation "com.bikininjas:core-lib:${project.findProperty('coreLibVersion') ?: '1.+'}"
     implementation libs.jetbrains.annotations
 
     // NeoForge Test Framework — for @ForEachTest / @EmptyTemplate / ExtendedGameTestHelper
