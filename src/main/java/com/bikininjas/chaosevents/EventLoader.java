@@ -61,7 +61,7 @@ public final class EventLoader {
     private static final Gson GSON = new Gson();
     private static final Random RNG = new Random();
 
-    private static final String EVENTS_PATH = "chaos_events/event";
+    private static final String EVENTS_PATH = "event";
 
     /** All parsed event entries (including those filtered out by difficulty). */
     private static final List<ChaosEventEntry> allEvents = new ArrayList<>();
@@ -154,7 +154,8 @@ public final class EventLoader {
 
         var resourceManager = server.getResourceManager();
         var eventResources = resourceManager.listResources(EVENTS_PATH,
-                path -> path.getPath().endsWith(".json"));
+                path -> path.getPath().endsWith(".json")
+                      && ChaosEventsMod.MOD_ID.equals(path.getNamespace()));
 
         for (var entry : eventResources.entrySet()) {
             var location = entry.getKey();

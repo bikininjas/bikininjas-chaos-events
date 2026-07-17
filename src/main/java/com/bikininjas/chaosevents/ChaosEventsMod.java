@@ -50,9 +50,24 @@ public final class ChaosEventsMod {
         static void onServerAboutToStart(ServerAboutToStartEvent event) {
             var server = event.getServer();
             EventLoader.loadAll(server);
-            RandomEventManager.getInstance().setEnabled(true);
-            LOGGER.info("Chaos Events loaded {} event(s) from datapack",
-                    RandomEventManager.getInstance().getEventCount());
+
+            // Apply config interval
+            var mgr = RandomEventManager.getInstance();
+            int minSec = parseIntConfig(MOD_ID, "interval_min", 300);
+            int maxSec = parseIntConfig(MOD_ID, "interval_max", 900);
+            mgr.setInterval(minSec * 20, maxSec * 20);
+            mgr.setEnabled(true);
+
+            LOGGER.info("Chaos Events loaded {} event(s) from datapack, interval {}-{}s",
+                    mgr.getEventCount(), minSec, maxSec);
+        }
+
+        static int parseIntConfig(String modId, String key, int fallback) {
+            try {
+                return Integer.parseInt(BikiniConfigRegistry.getString(modId, key, String.valueOf(fallback)));
+            } catch (NumberFormatException e) {
+                return fallback;
+            }
         }
 
         @SubscribeEvent
