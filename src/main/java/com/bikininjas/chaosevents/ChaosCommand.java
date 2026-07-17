@@ -21,7 +21,6 @@ public final class ChaosCommand {
 
     private static final ModLogger LOGGER = LogManager.getLogger(ChaosEventsMod.MOD_ID, ChaosCommand.class);
     private static final String PREFIX = "§6[Chaos]§r ";
-    private static boolean chaosEnabled = true;
 
     private ChaosCommand() {
     }
@@ -86,7 +85,7 @@ public final class ChaosCommand {
         var activeEvents = RandomEventManager.getInstance().getEventCount();
 
         source.sendSuccess(() -> Component.literal(PREFIX + "§e=== Chaos Events Status ==="), false);
-        source.sendSuccess(() -> Component.literal(PREFIX + "§7Enabled: §" + (chaosEnabled ? "aYes" : "cNo")), false);
+        source.sendSuccess(() -> Component.literal(PREFIX + "§7Enabled: §" + (RandomEventManager.getInstance().isEnabled() ? "aYes" : "cNo")), false);
         source.sendSuccess(() -> Component.literal(PREFIX + "§7Difficulty: §b" + activeDiff.name().toLowerCase()), false);
         source.sendSuccess(() -> Component.literal(PREFIX + "§7Total Events: §e" + totalEvents), false);
         source.sendSuccess(() -> Component.literal(PREFIX + "§7Active Events: §e" + activeEvents), false);
@@ -97,12 +96,13 @@ public final class ChaosCommand {
     }
 
     private static int executeToggle(@NotNull CommandSourceStack source) {
-        chaosEnabled = !chaosEnabled;
-        RandomEventManager.getInstance().setEnabled(chaosEnabled);
+        var mgr = RandomEventManager.getInstance();
+        var wasEnabled = mgr.isEnabled();
+        mgr.setEnabled(!wasEnabled);
 
-        var msg = chaosEnabled ? "§aChaos events enabled!" : "§cChaos events disabled!";
+        var msg = !wasEnabled ? "§aChaos events enabled!" : "§cChaos events disabled!";
         source.sendSuccess(() -> Component.literal(PREFIX + msg), true);
-        LOGGER.info("Chaos events toggled {} by {}", chaosEnabled ? "ON" : "OFF", source.getTextName());
+        LOGGER.info("Chaos events toggled {} by {}", mgr.isEnabled() ? "ON" : "OFF", source.getTextName());
         return 1;
     }
 
