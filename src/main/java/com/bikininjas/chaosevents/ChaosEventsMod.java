@@ -1,5 +1,6 @@
 package com.bikininjas.chaosevents;
 
+import com.bikininjas.chaosevents.item.ModItems;
 import com.bikininjas.corelib.log.LogManager;
 import com.bikininjas.corelib.log.ModLogger;
 import com.bikininjas.corelib.randomevent.RandomEventManager;
@@ -26,6 +27,9 @@ public final class ChaosEventsMod {
     private static final ModLogger LOGGER = LogManager.getLogger(MOD_ID, ChaosEventsMod.class);
 
     public ChaosEventsMod(IEventBus modBus) {
+        // Register items
+        ModItems.MOD_ITEMS.register(modBus);
+
         // Load datapack event definitions on server start
         NeoForge.EVENT_BUS.addListener((ServerAboutToStartEvent event) -> {
             var server = event.getServer();

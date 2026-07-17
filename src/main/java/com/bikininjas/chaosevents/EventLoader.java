@@ -16,6 +16,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -23,6 +25,7 @@ import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -128,7 +131,9 @@ public final class EventLoader {
             String type,
             JsonObject config,
             @Nullable String message,
-            @Nullable String messageColor
+            @Nullable String messageColor,
+            double rewardChance,
+            int rewardCount
     ) {}
 
     // -- Public API -----------------------------------------------------------
@@ -294,6 +299,7 @@ public final class EventLoader {
             case "potion_cloud" -> createPotionCloudEvent(entry);
             case "lightning" -> createLightningEvent(entry);
             case "launch_entities" -> createLaunchEntitiesEvent(entry);
+            case "boss_spawn" -> createBossSpawnEvent(entry);
             default -> {
                 LOGGER.warn("Unknown event type '{}' in event '{}'", entry.type(), entry.displayName());
                 yield null;
@@ -336,11 +342,14 @@ public final class EventLoader {
         var message = getString(json, "message");
         var messageColor = getString(json, "message_color");
         var config = json.has("config") ? json.getAsJsonObject("config") : new JsonObject();
+        var rewardChance = getDouble(json, "reward_chance", 0.0);
+        var rewardCount = getInt(json, "reward_count", 1);
 
         return new ChaosEventEntry(
                 fileName, displayName, weight, difficulty,
                 minPlayers, dimensions, cooldownTicks,
-                type, config, message, messageColor
+                type, config, message, messageColor,
+                rewardChance, rewardCount
         );
     }
 
@@ -389,6 +398,8 @@ public final class EventLoader {
                         level.addFreshEntity(entity);
                     }
                 }
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -428,6 +439,8 @@ public final class EventLoader {
                 for (var player : players) {
                     player.addEffect(new MobEffectInstance(Holder.direct(effect), duration, amplifier));
                 }
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -453,6 +466,8 @@ public final class EventLoader {
                 broadcastIfPresent(level, entry);
                 level.explode(null, origin.x, origin.y, origin.z, power, fire,
                         Level.ExplosionInteraction.TNT);
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -509,6 +524,7 @@ public final class EventLoader {
                         }
                     }
                 }
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -528,6 +544,8 @@ public final class EventLoader {
             @Override
             public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
                 broadcastIfPresent(level, entry);
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -578,6 +596,8 @@ public final class EventLoader {
                     cloud.addEffect(cloudEffect);
                     level.addFreshEntity(cloud);
                 }
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -609,6 +629,8 @@ public final class EventLoader {
                     bolt.setPos(target.getX(), target.getY(), target.getZ());
                     level.addFreshEntity(bolt);
                 }
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
     }
@@ -640,8 +662,119 @@ public final class EventLoader {
                     entity.push(0.0, power, 0.0);
                     entity.hurtMarked = true;
                 }
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
             }
         };
+    }
+
+    // -- Boss Spawn Event -----------------------------------------------------
+
+    private static @Nullable RandomEvent createBossSpawnEvent(@NotNull ChaosEventEntry entry) {
+        var config = entry.config();
+        var entityId = getString(config, "entity");
+        var healthMultiplier = getDouble(config, "health_multiplier", 3.0);
+        var damageMultiplier = getDouble(config, "damage_multiplier", 2.0);
+
+        if (entityId == null) {
+            LOGGER.warn("boss_spawn event '{}' missing 'entity' config", entry.displayName());
+            return null;
+        }
+
+        var entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
+        if (entityType == null) {
+            LOGGER.warn("Unknown entity '{}' in boss_spawn event '{}'", entityId, entry.displayName());
+            return null;
+        }
+
+        return new RandomEvent() {
+            @Override
+            public @NotNull String name() {
+                return entry.displayName();
+            }
+
+            @Override
+            public int weight() {
+                return entry.weight();
+            }
+
+            @Override
+            public void execute(@NotNull ServerLevel level, @NotNull Vec3 origin) {
+                broadcastIfPresent(level, entry);
+                var entity = entityType.create(level);
+                if (entity instanceof LivingEntity living) {
+                    var maxHealth = living.getMaxHealth() * healthMultiplier;
+                    living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH)
+                            .setBaseValue(maxHealth);
+                    living.setHealth((float) maxHealth);
+
+                    if (living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) != null) {
+                        var baseDmg = living.getAttributeValue(
+                                net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                        living.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)
+                                .setBaseValue(baseDmg * damageMultiplier);
+                    }
+
+                    living.setCustomName(Component.literal("§4§l" + entry.displayName()));
+                    living.setCustomNameVisible(true);
+                    if (living instanceof net.minecraft.world.entity.Mob mob) {
+                        mob.setPersistenceRequired();
+                    }
+                    living.setPos(origin);
+                    level.addFreshEntity(living);
+                }
+                distributeSurvivorRewards(level, entry);
+                broadcastEventVisuals(level, entry, origin);
+            }
+        };
+    }
+
+    // -- Survivor Rewards -----------------------------------------------------
+
+    /**
+     * Distribute survivor rewards to all online players after an event executes,
+     * if the event has a reward_chance > 0.
+     */
+    private static void distributeSurvivorRewards(ServerLevel level, ChaosEventEntry entry) {
+        if (entry.rewardChance() <= 0.0) return;
+        if (RNG.nextDouble() > entry.rewardChance()) return;
+
+        var tagLookup = level.registryAccess().lookupOrThrow(Registries.ITEM);
+        var rewardTag = TagKey.create(Registries.ITEM,
+                ResourceLocation.fromNamespaceAndPath("chaos_events", "event_rewards"));
+
+        tagLookup.get(rewardTag).ifPresent(tag -> {
+            var items = tag.stream().toList();
+            if (!items.isEmpty()) {
+                var players = level.getServer().getPlayerList().getPlayers();
+                for (var player : players) {
+                    for (int i = 0; i < entry.rewardCount(); i++) {
+                        var item = items.get(RNG.nextInt(items.size()));
+                        player.getInventory().add(new ItemStack(item));
+                    }
+                    player.sendSystemMessage(
+                            Component.literal("§eYou survived the chaos and received a reward!"));
+                }
+            }
+        });
+    }
+
+    // -- Event Visual Effects -------------------------------------------------
+
+    /**
+     * Broadcast visual and audio effects to all players when an event fires.
+     */
+    private static void broadcastEventVisuals(ServerLevel level, ChaosEventEntry entry, Vec3 origin) {
+        var players = level.getServer().getPlayerList().getPlayers();
+        for (var player : players) {
+            // Brief nausea for screen-shake effect
+            player.addEffect(new MobEffectInstance(
+                    MobEffects.CONFUSION, 60, 0, true, false));
+
+            // Play event sound at player's position
+            player.playNotifySound(net.minecraft.sounds.SoundEvents.ENDER_DRAGON_GROWL,
+                    net.minecraft.sounds.SoundSource.MASTER, 0.5F, 1.0F);
+        }
     }
 
     // -- Funny-Effects Integration --------------------------------------------

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " B ",
+    "BOB",
+    " B "
+  ],
+  "key": {
+    "B": { "item": "minecraft:blaze_powder" },
+    "O": { "item": "minecraft:obsidian" }
+  },
+  "result": {
+    "id": "chaos_events:chaos_orb",
+    "count": 1
+  }
+}
