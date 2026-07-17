@@ -182,7 +182,6 @@ public final class EventLoader {
 
         var count = mgr.getEventCount();
         if (count > 0) {
-            mgr.setInterval(600, 3600); // 30s to 3min in ticks
             LOGGER.info("Loaded {} chaos event(s) ({} total parsed, filtered to {})",
                     count, allEvents.size(), activeDifficulty);
         } else {

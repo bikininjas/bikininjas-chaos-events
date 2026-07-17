@@ -1,0 +1,16 @@
+{
+  "name": "Ender Raid",
+  "weight": 5,
+  "difficulty": "hard",
+  "min_players": 2,
+  "dimensions": ["minecraft:overworld", "minecraft:the_nether"],
+  "cooldown_ticks": 24000,
+  "type": "spawn_entity",
+  "message": "\u00a75The Endermen have found you...",
+  "message_color": "dark_purple",
+  "config": {
+    "entity": "minecraft:enderman",
+    "count": 4,
+    "radius": 8
+  }
+}

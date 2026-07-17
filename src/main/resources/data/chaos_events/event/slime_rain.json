@@ -1,0 +1,16 @@
+{
+  "name": "Slime Rain",
+  "weight": 9,
+  "difficulty": "easy",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 10000,
+  "type": "spawn_entity",
+  "message": "\u00a7aSPLOOSH! It's raining slimes!",
+  "message_color": "green",
+  "config": {
+    "entity": "minecraft:slime",
+    "count": 6,
+    "radius": 5
+  }
+}

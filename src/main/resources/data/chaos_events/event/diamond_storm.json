@@ -1,0 +1,17 @@
+{
+  "name": "Diamond Storm",
+  "weight": 3,
+  "difficulty": "insane",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 36000,
+  "type": "give_items",
+  "message": "\u00a7bA storm of riches falls from the sky!",
+  "message_color": "aqua",
+  "config": {
+    "tag": "chaos_events:event_rewards",
+    "count": 3
+  },
+  "reward_chance": 0.4,
+  "reward_count": 1
+}

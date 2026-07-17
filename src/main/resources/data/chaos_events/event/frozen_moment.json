@@ -1,0 +1,17 @@
+{
+  "name": "Frozen Moment",
+  "weight": 7,
+  "difficulty": "hard",
+  "min_players": 2,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 20000,
+  "type": "apply_effect",
+  "message": "\u00a7bTime... slows... down...",
+  "message_color": "aqua",
+  "config": {
+    "effect": "minecraft:slowness",
+    "duration": 300,
+    "amplifier": 3,
+    "apply_to_all": true
+  }
+}

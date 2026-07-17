@@ -1,0 +1,16 @@
+{
+  "name": "Phantom Menace",
+  "weight": 5,
+  "difficulty": "insane",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 18000,
+  "type": "spawn_entity",
+  "message": "\u00a77SCREEEECH! The phantoms ignore the daylight!",
+  "message_color": "gray",
+  "config": {
+    "entity": "minecraft:phantom",
+    "count": 6,
+    "radius": 10
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Bee Apocalypse",
+  "weight": 8,
+  "difficulty": "hard",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 15000,
+  "type": "spawn_entity",
+  "message": "\u00a7eBUZZZZ! The bees are ANGRY!",
+  "message_color": "yellow",
+  "config": {
+    "entity": "minecraft:bee",
+    "count": 12,
+    "radius": 6
+  }
+}
