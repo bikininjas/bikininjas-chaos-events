@@ -1,0 +1,16 @@
+{
+  "name": "TNT Sprinkler",
+  "weight": 4,
+  "difficulty": "normal",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 12000,
+  "type": "explosion",
+  "config": {
+    "power": 3.0,
+    "fiery": true,
+    "count": 5,
+    "message": "☠ TNT rain incoming! Take cover!",
+    "message_color": "red"
+  }
+}

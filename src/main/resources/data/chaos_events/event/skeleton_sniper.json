@@ -1,0 +1,15 @@
+{
+  "name": "Skeleton Sniper",
+  "weight": 8,
+  "difficulty": "normal",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 10000,
+  "type": "spawn_entity",
+  "config": {
+    "entity": "minecraft:skeleton",
+    "count": 3,
+    "radius": 8,
+    "message": "💀 Skeletons with perfect aim have appeared!"
+  }
+}

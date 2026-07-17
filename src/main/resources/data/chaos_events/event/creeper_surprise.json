@@ -1,0 +1,14 @@
+{
+  "name": "Creeper Surprise",
+  "weight": 5,
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 12000,
+  "type": "spawn_entity",
+  "message": "§cSSssss... watch your back!",
+  "config": {
+    "entity": "minecraft:creeper",
+    "count": 3,
+    "radius": 4
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Potion Party",
+  "weight": 7,
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 8000,
+  "type": "apply_effect",
+  "message": "§dA magical cloud spreads across the land!",
+  "config": {
+    "effect": "minecraft:regeneration",
+    "duration": 200,
+    "amplifier": 1
+  }
+}

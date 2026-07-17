@@ -1,0 +1,151 @@
+name: CI/CD — Chaos Events
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: CI — Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve core-lib version
+        id: corelib
+        run: |
+          VERSION=$(curl -sSf https://api.github.com/repos/bikininjas/bikininjas-core-lib/releases/latest | jq -r .tag_name | sed 's/^v//')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download core-lib JAR
+        run: |
+          VERSION="${{ steps.corelib.outputs.version }}"
+          mkdir -p libs
+          curl -sSfL -o "libs/core_lib-${VERSION}.jar" \
+            "https://github.com/bikininjas/bikininjas-core-lib/releases/download/v${VERSION}/bikininjas-core_lib-${VERSION}.jar"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Build & test
+        run: ./gradlew build test -PcoreLibVersion=${{ steps.corelib.outputs.version }}
+
+      - name: Smoke test (start server)
+        run: |
+          rm -rf run/
+          mkdir -p run
+          echo "eula=true" > run/eula.txt
+          echo "server-port=25569" > run/server.properties
+          echo "online-mode=false" >> run/server.properties
+          timeout 90 ./gradlew runServer -PcoreLibVersion=${{ steps.corelib.outputs.version }} 2>&1 || [ $? -eq 124 ]
+          fuser -k 25569/tcp 2>/dev/null || true
+          rm -rf run/
+
+  release:
+    name: CD — Release
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve core-lib version
+        id: corelib
+        run: |
+          VERSION=$(curl -sSf https://api.github.com/repos/bikininjas/bikininjas-core-lib/releases/latest | jq -r .tag_name | sed 's/^v//')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download core-lib JAR
+        run: |
+          VERSION="${{ steps.corelib.outputs.version }}"
+          mkdir -p libs
+          curl -sSfL -o "libs/core_lib-${VERSION}.jar" \
+            "https://github.com/bikininjas/bikininjas-core-lib/releases/download/v${VERSION}/bikininjas-core_lib-${VERSION}.jar"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Determine next version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LATEST_VER=${LATEST_TAG#v}
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+          # First release
+          if [ "$LATEST_TAG" = "v0.0.0" ] || ! git tag | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "version=0.1.0" >> $GITHUB_OUTPUT
+            echo "bump=initial" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          IFS='.' read -r MAJ MIN PAT <<< "$LATEST_VER"
+          COMMITS=$(git log "${LATEST_TAG}..HEAD" --format="%s" 2>/dev/null || echo "")
+
+          HAS_BREAKING=$(echo "$COMMITS" | grep -cE '! :|BREAKING CHANGE' || true)
+          HAS_FEAT=$(echo "$COMMITS" | grep -cE '^feat(\(.*\))?:' || true)
+          HAS_FIX=$(echo "$COMMITS" | grep -cE '^fix(\(.*\))?:' || true)
+          HAS_PERF=$(echo "$COMMITS" | grep -cE '^perf(\(.*\))?:' || true)
+
+          if [ "$HAS_BREAKING" -gt 0 ]; then
+            MAJ=$((MAJ + 1)); MIN=0; PAT=0
+            echo "bump=major" >> $GITHUB_OUTPUT
+          elif [ "$HAS_FEAT" -gt 0 ]; then
+            MIN=$((MIN + 1)); PAT=0
+            echo "bump=minor" >> $GITHUB_OUTPUT
+          elif [ "$HAS_FIX" -gt 0 ] || [ "$HAS_PERF" -gt 0 ]; then
+            PAT=$((PAT + 1))
+            echo "bump=patch" >> $GITHUB_OUTPUT
+          else
+            echo "No semver-relevant commits. Skipping release."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "version=${MAJ}.${MIN}.${PAT}" >> $GITHUB_OUTPUT
+
+      - name: Build release JAR
+        if: steps.version.outputs.skip != 'true'
+        run: ./gradlew build -Pmod_version=${{ steps.version.outputs.version }} -PcoreLibVersion=${{ steps.corelib.outputs.version }}
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.skip != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body: |
+            ## Chaos Events v${{ steps.version.outputs.version }}
+
+            Bump: ${{ steps.version.outputs.bump }}
+
+            Automated release from commit ${{ github.sha }}.
+          files: build/libs/*.jar
+          make_latest: true
+          generate_release_notes: true

@@ -1,0 +1,18 @@
+{
+  "name": "Drunken Haze",
+  "weight": 5,
+  "difficulty": "easy",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 7000,
+  "type": "potion_cloud",
+  "config": {
+    "effect": "minecraft:nausea",
+    "duration": 300,
+    "amplifier": 1,
+    "radius": 5,
+    "count": 3,
+    "message": "🍺 Everything is spinning... hic!",
+    "message_color": "gold"
+  }
+}

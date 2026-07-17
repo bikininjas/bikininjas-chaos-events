@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Pre-commit hook — compile + test avant chaque commit
+# Pour un check complet avec smoke test serveur: FULL_CHECK=1 git commit ...
+#
+# Le smoke test lance un vrai serveur Minecraft+NeoForge (port 25569)
+# et vérifie que le mod se charge sans crash (timeout 30s).
+
+set -euo pipefail
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Charger JAVA_HOME depuis .env si présent
+if [ -f .env ]; then
+  set -a && source .env && set +a
+fi
+
+echo "🔨 Pre-commit: compileJava + test..."
+./gradlew compileJava test
+
+if [ "${FULL_CHECK:-0}" = "1" ]; then
+  echo ""
+  echo "🔨 Pre-commit: smoke test (démarrage serveur 30s sur port 25569)..."
+  rm -rf run/
+  mkdir -p run
+  echo "eula=true" > run/eula.txt
+  echo "server-port=25569" > run/server.properties
+  echo "online-mode=false" >> run/server.properties
+  timeout 30 ./gradlew runServer 2>&1 || [ $? -eq 124 ]
+  fuser -k 25569/tcp 2>/dev/null || true
+  rm -rf run/
+  echo "✅ Smoke test OK"
+fi
+
+echo "✅ Pre-commit OK"

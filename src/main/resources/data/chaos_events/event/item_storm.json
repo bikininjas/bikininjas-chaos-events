@@ -1,0 +1,12 @@
+{
+  "name": "Item Storm",
+  "weight": 8,
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 6000,
+  "type": "give_items",
+  "message": "§bA shower of rewards falls from the sky!",
+  "config": {
+    "count": 3
+  }
+}

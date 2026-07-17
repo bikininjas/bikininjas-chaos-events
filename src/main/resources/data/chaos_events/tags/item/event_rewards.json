@@ -1,0 +1,15 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:diamond",
+    "minecraft:emerald",
+    "minecraft:gold_ingot",
+    "minecraft:iron_ingot",
+    "minecraft:ender_pearl",
+    "minecraft:experience_bottle",
+    "minecraft:golden_apple",
+    "minecraft:bone_meal",
+    "minecraft:arrow",
+    "minecraft:cooked_beef"
+  ]
+}

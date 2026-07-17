@@ -1,0 +1,14 @@
+{
+  "name": "Lightning Roulette",
+  "weight": 5,
+  "difficulty": "hard",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 15000,
+  "type": "lightning",
+  "config": {
+    "count": 10,
+    "message": "⚡ RUN! Zeus is angry!",
+    "message_color": "yellow"
+  }
+}

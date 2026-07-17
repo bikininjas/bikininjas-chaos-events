@@ -1,0 +1,15 @@
+{
+  "name": "Funny Surprise",
+  "weight": 7,
+  "difficulty": "easy",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 9000,
+  "type": "give_items",
+  "config": {
+    "tag": "chaos_events:event_rewards",
+    "count": 1,
+    "message": "🎁 A mysterious gift appears!",
+    "message_color": "gold"
+  }
+}

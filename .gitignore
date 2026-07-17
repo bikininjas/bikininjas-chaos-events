@@ -1,0 +1,23 @@
+.gradle/
+build/
+out/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+bin/
+libs/
+src/generated/.cache
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environnement
+.env
+*.log
+run/

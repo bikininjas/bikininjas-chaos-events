@@ -1,0 +1,14 @@
+{
+  "name": "Chicken Invasion",
+  "weight": 10,
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 6000,
+  "type": "spawn_entity",
+  "message": "§eA chicken invasion has begun! Bawk bawk!",
+  "config": {
+    "entity": "minecraft:chicken",
+    "count": 10,
+    "radius": 5
+  }
+}

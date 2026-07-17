@@ -1,0 +1,14 @@
+{
+  "name": "Zombie Horde",
+  "weight": 12,
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 8000,
+  "type": "spawn_entity",
+  "message": "§2The dead rise... a zombie horde approaches!",
+  "config": {
+    "entity": "minecraft:zombie",
+    "count": 5,
+    "radius": 4
+  }
+}

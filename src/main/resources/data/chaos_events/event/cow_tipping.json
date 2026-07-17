@@ -1,0 +1,15 @@
+{
+  "name": "Cow Tipping",
+  "weight": 6,
+  "difficulty": "easy",
+  "min_players": 1,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 8000,
+  "type": "launch_entities",
+  "config": {
+    "radius": 20,
+    "power": 2.0,
+    "message": "🐄 MOO-ve over! Cows are flying!",
+    "message_color": "gold"
+  }
+}

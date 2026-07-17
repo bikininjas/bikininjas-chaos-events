@@ -1,0 +1,16 @@
+{
+  "name": "Meteor Shower",
+  "weight": 1,
+  "difficulty": "insane",
+  "min_players": 2,
+  "dimensions": ["minecraft:overworld"],
+  "cooldown_ticks": 36000,
+  "type": "explosion",
+  "config": {
+    "power": 4.0,
+    "fiery": true,
+    "count": 8,
+    "message": "☄ METEOR SHOWER! THE SKY IS FALLING!",
+    "message_color": "dark_red"
+  }
+}
